@@ -1,0 +1,4 @@
+.build/
+MDirStat.app/
+.DS_Store
+Packaging/Icon/AppIcon.iconset/
