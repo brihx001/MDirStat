@@ -59,16 +59,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     @objc func showAbout(_ sender: Any?) {
-        let credits = NSMutableAttributedString(
-            string: "Disk usage analyzer with a cushion treemap.\n",
-            attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor])
-        credits.append(NSAttributedString(string: "github.com/brihx001",
-                                          attributes: [.font: NSFont.systemFont(ofSize: 11),
-                                                       .link: URL(string: "https://github.com/brihx001")!]))
+        AboutPanel.show()
+    }
+}
+
+/// Standard About panel, completed with the author, the build date and time
+/// (MDirStatBuildDate key, written by build.sh) and the project page.
+enum AboutPanel {
+    static let author = "brihx001"
+    static let authorURL = URL(string: "https://github.com/brihx001")!
+    static let projectURL = URL(string: "https://github.com/brihx001/MDirStat")!
+
+    static func show() {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
-        credits.addAttribute(.paragraphStyle, value: paragraph, range: NSRange(location: 0, length: credits.length))
+        paragraph.paragraphSpacing = 4
+        let base: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 11),
+            .foregroundColor: NSColor.secondaryLabelColor,
+            .paragraphStyle: paragraph,
+        ]
+        func text(_ string: String) -> NSAttributedString {
+            NSAttributedString(string: string, attributes: base)
+        }
+        func link(_ string: String, _ url: URL) -> NSAttributedString {
+            var attributes = base
+            attributes[.link] = url
+            return NSAttributedString(string: string, attributes: attributes)
+        }
+
+        let credits = NSMutableAttributedString(attributedString: text("Disk usage analyzer with a cushion treemap.\nBy "))
+        credits.append(link(author, authorURL))
+        if let built = buildDate {
+            credits.append(text("\nBuilt \(Format.dateTime(built))"))
+        }
+        credits.append(text("\n"))
+        credits.append(link(projectURL.absoluteString.replacingOccurrences(of: "https://", with: ""), projectURL))
+
+        NSApp.activate()
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
+    }
+
+    /// Build date and time, stored by build.sh as an ISO 8601 UTC string.
+    private static var buildDate: Date? {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: "MDirStatBuildDate") as? String else { return nil }
+        return ISO8601DateFormatter().date(from: raw)
     }
 }
 

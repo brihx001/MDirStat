@@ -46,6 +46,18 @@ enum Format {
         time > 0 ? dateFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(time))) : ""
     }
 
+    private static let dateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss zzz"
+        return formatter
+    }()
+
+    /// Date and time in the local time zone, with the zone: "2026-11-09 16:45:12 GMT+1".
+    static func dateTime(_ date: Date) -> String {
+        dateTimeFormatter.string(from: date)
+    }
+
     /// "0:07", "12:34", "1:02:03".
     static func elapsed(_ seconds: TimeInterval) -> String {
         let total = max(Int(seconds), 0)
