@@ -1,6 +1,6 @@
 import AppKit
 
-/// Arborescence des dossiers, triee par taille, facon WinDirStat.
+/// Folder tree sorted by size, in the spirit of WinDirStat.
 final class DirectoryOutline: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate, NSMenuDelegate {
     let scrollView = NSScrollView()
     let outlineView = NSOutlineView()
@@ -48,9 +48,9 @@ final class DirectoryOutline: NSObject, NSOutlineViewDataSource, NSOutlineViewDe
             tableColumn.title = column.title
             tableColumn.width = column.width
             tableColumn.minWidth = column == .name ? 120 : 50
-            // Tailles, compteurs et dates se lisent du plus grand au plus petit.
+            // Sizes, counts and dates read from largest to smallest.
             tableColumn.sortDescriptorPrototype = NSSortDescriptor(key: column.rawValue, ascending: column == .name)
-            // Seule la colonne des noms suit la largeur de la fenetre.
+            // Only the name column follows the window width.
             if column != .name { tableColumn.resizingMask = .userResizingMask }
             if [.size, .items, .files].contains(column) {
                 tableColumn.headerCell.alignment = .right
@@ -86,7 +86,7 @@ final class DirectoryOutline: NSObject, NSOutlineViewDataSource, NSOutlineViewDe
         return row >= 0 ? outlineView.item(atRow: row) as? FileNode : nil
     }
 
-    /// Recharge apres une modification de l'arbre, en gardant la selection.
+    /// Reloads after the tree changes, keeping the selection.
     func reload() {
         let selected = selectedNode
         sortedCache.removeAll()
@@ -96,7 +96,7 @@ final class DirectoryOutline: NSObject, NSOutlineViewDataSource, NSOutlineViewDe
         if let selected, let root, selected.isDescendant(of: root) { reveal(selected) }
     }
 
-    /// Deplie les ancetres, selectionne et fait defiler jusqu'a l'element.
+    /// Expands the ancestors, selects the item and scrolls to it.
     func reveal(_ node: FileNode) {
         for ancestor in node.ancestors.reversed() {
             outlineView.expandItem(ancestor)
@@ -134,7 +134,7 @@ final class DirectoryOutline: NSObject, NSOutlineViewDataSource, NSOutlineViewDe
         }
     }
 
-    // MARK: - Source de donnees
+    // MARK: - Data source
 
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
         guard let node = item as? FileNode else { return root == nil ? 0 : 1 }
@@ -159,7 +159,7 @@ final class DirectoryOutline: NSObject, NSOutlineViewDataSource, NSOutlineViewDe
         reload()
     }
 
-    // MARK: - Delegue
+    // MARK: - Delegate
 
     func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
         guard let node = item as? FileNode,
@@ -224,7 +224,7 @@ final class DirectoryOutline: NSObject, NSOutlineViewDataSource, NSOutlineViewDe
         }
     }
 
-    // MARK: - Menu contextuel
+    // MARK: - Context menu
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
@@ -239,7 +239,7 @@ final class DirectoryOutline: NSObject, NSOutlineViewDataSource, NSOutlineViewDe
 }
 
 extension PercentCell {
-    /// Une couleur par niveau de profondeur, comme les barres de WinDirStat.
+    /// One color per depth level, like the WinDirStat bars.
     static func color(depth: Int) -> NSColor {
         let colors: [NSColor] = [.systemBlue, .systemRed, .systemGreen, .systemOrange, .systemPurple, .systemTeal, .systemPink, .systemYellow]
         return colors[depth % colors.count].withAlphaComponent(0.85)

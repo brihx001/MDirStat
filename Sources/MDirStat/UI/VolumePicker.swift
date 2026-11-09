@@ -1,6 +1,6 @@
 import AppKit
 
-/// Feuille de depart : choisir un volume monte, le dossier personnel ou un dossier.
+/// Start sheet: choose a mounted volume, the home folder or any folder.
 final class VolumePicker: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     private struct Volume {
         let url: URL

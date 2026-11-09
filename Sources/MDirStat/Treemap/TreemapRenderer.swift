@@ -2,14 +2,14 @@ import CoreGraphics
 import Foundation
 import simd
 
-/// Image du treemap et position de chaque element, en pixels, origine en haut a gauche.
+/// Treemap image and the position of each item, in pixels, origin at top left.
 final class TreemapResult {
     let image: CGImage
     let pixelWidth: Int
     let pixelHeight: Int
     let root: FileNode
     let rects: [ObjectIdentifier: CGRect]
-    /// Elements dessines comme une seule tuile (fichiers, ou dossiers trop petits).
+    /// Items drawn as a single tile (files, or folders too small to subdivide).
     let leaves: [(node: FileNode, rect: CGRect)]
 
     init(image: CGImage, root: FileNode, rects: [ObjectIdentifier: CGRect], leaves: [(node: FileNode, rect: CGRect)]) {
@@ -22,15 +22,15 @@ final class TreemapResult {
     }
 }
 
-/// Treemap « squarified » (Bruls, Huizing, van Wijk) eclaire en coussins
-/// (van Wijk et van de Wetering) : chaque niveau ajoute une bosse parabolique,
-/// et l'ombrage fait ressortir la hierarchie sans dessiner de bordures.
+/// Squarified treemap (Bruls, Huizing, van Wijk) with cushion shading
+/// (van Wijk and van de Wetering): each level adds a parabolic ridge, and the
+/// shading reveals the hierarchy without drawing borders.
 final class TreemapRenderer {
     private struct Box {
         var x0, y0, x1, y1: Double
     }
 
-    // Parametres du coussin.
+    // Cushion parameters.
     private static let initialHeight = 0.38
     private static let heightScale = 0.91
     private static let ambient = 0.15
@@ -59,7 +59,7 @@ final class TreemapRenderer {
         self.isCancelled = isCancelled
     }
 
-    /// Recursif : a appeler sur un fil a grande pile, sous treeLock.
+    /// Recursive: call on a thread with a large stack, holding treeLock.
     static func render(root: FileNode, width: Int, height: Int, colors: [SIMD3<Float>],
                        isCancelled: @escaping () -> Bool) -> TreemapResult? {
         guard width > 0, height > 0,
@@ -91,7 +91,7 @@ final class TreemapRenderer {
         guard ix1 > ix0, iy1 > iy0 else { return }
         rects[ObjectIdentifier(node)] = CGRect(x: ix0, y: iy0, width: ix1 - ix0, height: iy1 - iy0)
 
-        // surface : x lineaire, y lineaire, x carre, y carre.
+        // surface: linear x, linear y, squared x, squared y.
         var surface = surface
         let rx = TreemapRenderer.ridge(box.x0, box.x1, ridge)
         let ry = TreemapRenderer.ridge(box.y0, box.y1, ridge)
@@ -108,15 +108,15 @@ final class TreemapRenderer {
         }
     }
 
-    /// Bosse parabolique de hauteur h sur [a, b] : coefficients lineaire et carre.
+    /// Parabolic ridge of height h over [a, b]: linear and squared coefficients.
     private static func ridge(_ a: Double, _ b: Double, _ h: Double) -> (linear: Double, square: Double) {
         let span = b - a
         guard span > 0 else { return (0, 0) }
         return (4 * h * (b + a) / span, -4 * h / span)
     }
 
-    /// Range les enfants (tries par taille decroissante) en rangees le long du
-    /// petit cote, en ajoutant des elements tant que le pire rapport d'aspect s'ameliore.
+    /// Lays out the children (sorted by decreasing size) in rows along the short
+    /// side, adding items while the worst aspect ratio keeps improving.
     private func layoutChildren(of node: FileNode, in box: Box, surface: SIMD4<Double>, ridge: Double) {
         let children = node.children
         var count = 0
@@ -133,12 +133,12 @@ final class TreemapRenderer {
         var i = 0
         while i < count && !cancelled {
             let w = rest.x1 - rest.x0, h = rest.y1 - rest.y0
-            // Plus rien de visible : les elements restants sont trop petits.
+            // Nothing visible left: the remaining items are too small.
             if Int(rest.x1.rounded()) <= Int(rest.x0.rounded()) || Int(rest.y1.rounded()) <= Int(rest.y0.rounded()) { break }
 
-            let vertical = w >= h          // rangee = colonne collee a gauche
-            let side = vertical ? h : w     // longueur de la rangee
-            let span = vertical ? w : h     // dimension sur laquelle on avance
+            let vertical = w >= h          // row = column against the left edge
+            let side = vertical ? h : w     // length of the row
+            let span = vertical ? w : h     // dimension along which rows advance
 
             var rowSum = 0.0
             var j = i

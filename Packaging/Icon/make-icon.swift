@@ -1,6 +1,6 @@
 #!/usr/bin/env swift
-// Genere Packaging/Icon/AppIcon.iconset (puis iconutil en fait AppIcon.icns).
-// Motif : un petit treemap en coussins sur un carre arrondi sombre.
+// Generates Packaging/Icon/AppIcon.iconset (iconutil then turns it into AppIcon.icns).
+// Design: a small cushion treemap on a dark rounded square.
 
 import AppKit
 
@@ -12,7 +12,7 @@ func rgb(_ r: Int, _ g: Int, _ b: Int, _ a: CGFloat = 1) -> NSColor {
     NSColor(srgbRed: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: a)
 }
 
-/// Tuiles du treemap dans la zone 0...1 (origine en bas a gauche), avec leur couleur.
+/// Treemap tiles in the 0...1 area (origin at bottom left), with their color.
 let tiles: [(NSRect, NSColor)] = [
     (NSRect(x: 0.00, y: 0.00, width: 0.56, height: 0.62), rgb(56, 107, 255)),
     (NSRect(x: 0.00, y: 0.62, width: 0.56, height: 0.38), rgb(255, 66, 66)),
@@ -28,7 +28,7 @@ func draw(size: CGFloat) {
     let context = NSGraphicsContext.current!.cgContext
     context.scaleBy(x: scale, y: scale)
 
-    // Grille d'icone macOS : carre arrondi de 824 points centre.
+    // macOS icon grid: centered 824-point rounded square.
     let tile = NSRect(x: 100, y: 100, width: 824, height: 824)
     let tilePath = NSBezierPath(roundedRect: tile, xRadius: 185, yRadius: 185)
     NSGraphicsContext.saveGraphicsState()
@@ -49,7 +49,7 @@ func draw(size: CGFloat) {
                           width: unit.width * area.width, height: unit.height * area.height)
             .insetBy(dx: gap / 2, dy: gap / 2)
         let path = NSBezierPath(roundedRect: rect, xRadius: 18, yRadius: 18)
-        // Coussin : reflet vers le haut a gauche, bords assombris.
+        // Cushion: highlight toward the top left, darker edges.
         let gradient = NSGradient(colors: [color.blended(withFraction: 0.55, of: .white)!, color,
                                            color.blended(withFraction: 0.55, of: .black)!],
                                   atLocations: [0, 0.45, 1], colorSpace: .sRGB)!

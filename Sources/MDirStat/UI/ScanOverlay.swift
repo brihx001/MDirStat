@@ -1,6 +1,6 @@
 import AppKit
 
-/// Panneau affiche par-dessus les vues pendant une analyse.
+/// Panel shown over the views during a scan.
 final class ScanOverlay: NSVisualEffectView {
     let titleLabel = NSTextField(labelWithString: "")
     let detailLabel = NSTextField(labelWithString: "")

@@ -1,10 +1,10 @@
 import Foundation
 
-/// Formatage fait a la main pour rester en anglais sur un Mac en francais.
+/// Hand-made formatting, so the interface stays in English on any system language.
 enum Format {
     private static let units = ["bytes", "KB", "MB", "GB", "TB", "PB"]
 
-    /// Comme le Finder : puissances de 1000, « 812 KB », « 13.1 MB », « 2.94 GB ».
+    /// Like the Finder: powers of 1000, "812 KB", "13.1 MB", "2.94 GB".
     static func bytes(_ value: Int64) -> String {
         var amount = Double(value)
         var unit = 0
@@ -46,7 +46,7 @@ enum Format {
         time > 0 ? dateFormatter.string(from: Date(timeIntervalSince1970: TimeInterval(time))) : ""
     }
 
-    /// « 0:07 », « 12:34 », « 1:02:03 ».
+    /// "0:07", "12:34", "1:02:03".
     static func elapsed(_ seconds: TimeInterval) -> String {
         let total = max(Int(seconds), 0)
         let hours = total / 3600, minutes = total / 60 % 60, rest = total % 60

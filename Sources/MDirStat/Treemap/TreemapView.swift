@@ -1,6 +1,6 @@
 import AppKit
 
-/// Compteur partage entre le fil principal et le fil de rendu.
+/// Counter shared between the main thread and the render thread.
 private final class Generation {
     private let lock = NSLock()
     private var value = 0
@@ -19,7 +19,7 @@ private final class Generation {
     }
 }
 
-/// Affiche le treemap, rendu en tache de fond a la resolution de l'ecran.
+/// Shows the treemap, rendered in the background at screen resolution.
 final class TreemapView: NSView {
     var root: FileNode? {
         didSet {
@@ -45,16 +45,16 @@ final class TreemapView: NSView {
     override var isOpaque: Bool { true }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
-    /// A appeler apres toute modification de l'arbre.
+    /// Call after any change to the tree.
     func invalidate() {
         pendingRender?.cancel()
         pendingRender = nil
-        // Le rendu en cours lit l'arbre : il s'arrete au prochain controle.
+        // The running render reads the tree: it stops at its next check.
         _ = generation.next()
         render()
     }
 
-    /// Annule un rendu en cours avant de modifier l'arbre.
+    /// Cancels a running render before the tree is modified.
     func cancelRendering() {
         _ = generation.next()
     }
@@ -118,7 +118,7 @@ final class TreemapView: NSView {
         thread.start()
     }
 
-    // MARK: - Dessin
+    // MARK: - Drawing
 
     override func draw(_ dirtyRect: NSRect) {
         NSColor(white: 0.15, alpha: 1).setFill()
@@ -174,7 +174,7 @@ final class TreemapView: NSView {
                   withAttributes: attributes)
     }
 
-    /// Rectangle de l'element, ou de son plus proche ancetre dessine.
+    /// Rectangle of the item, or of its closest drawn ancestor.
     private func displayedRect(of node: FileNode, in result: TreemapResult) -> CGRect? {
         guard node.isDescendant(of: result.root) else { return nil }
         var current: FileNode? = node
@@ -185,7 +185,7 @@ final class TreemapView: NSView {
         return nil
     }
 
-    // MARK: - Souris
+    // MARK: - Mouse
 
     func node(at point: NSPoint) -> FileNode? {
         guard let result else { return nil }

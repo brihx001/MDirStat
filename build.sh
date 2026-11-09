@@ -1,6 +1,6 @@
 #!/bin/bash
-# Construit MDirStat.app (bundle signe ad-hoc, sans sandbox : un analyseur de disque
-# doit lire tout le disque, ce que le sandbox interdit).
+# Builds MDirStat.app (ad hoc signed bundle, not sandboxed: a disk analyzer
+# has to read the whole disk, which the sandbox forbids).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -8,8 +8,8 @@ CONFIG="${1:-debug}"
 APP="MDirStat.app"
 BIN=".build/${CONFIG}/MDirStat"
 
-# Toolchain sans Xcode selectionne (macOS 27 / Swift 6.4) : systeme de
-# compilation natif, et greffon des macros SwiftUI pris dans Xcode.app.
+# Toolchain without a selected Xcode (macOS 27 / Swift 6.4): native build
+# system, and the SwiftUI macro plugin taken from Xcode.app if present.
 BUILD_ARGS=()
 if swift build --build-system native --help >/dev/null 2>&1; then
   BUILD_ARGS+=(--build-system native)
@@ -33,8 +33,8 @@ cp Packaging/Info.plist "${APP}/Contents/Info.plist"
 [ -f Packaging/AppIcon.icns ] && cp Packaging/AppIcon.icns "${APP}/Contents/Resources/AppIcon.icns"
 printf 'APPL????' > "${APP}/Contents/PkgInfo"
 
-# Date de construction, lue par le panneau « A propos ». Posee sur le bundle et
-# non sur Packaging/Info.plist, pour que le fichier du depot ne change pas.
+# Build date, stored in the bundle rather than in Packaging/Info.plist so the
+# file in the repository does not change.
 BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 /usr/libexec/PlistBuddy -c "Add :MDirStatBuildDate string ${BUILD_DATE}" "${APP}/Contents/Info.plist"
 

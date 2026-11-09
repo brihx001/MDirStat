@@ -2,30 +2,30 @@ import AppKit
 import UniformTypeIdentifiers
 
 struct ExtensionEntry {
-    /// Extension en minuscules, sans le point ; vide pour « sans extension ».
+    /// Lowercase extension without the dot; empty for "no extension".
     let ext: String
     var bytes: Int64
     var files: Int
-    /// Indice dans la palette, -1 pour le gris des extensions mineures.
+    /// Index into the palette, -1 for the gray of minor extensions.
     var colorIndex: Int
 }
 
-/// Repartition par extension, et couleur de chaque fichier dans le treemap.
+/// Breakdown by extension, and the color of each file in the treemap.
 final class ExtensionStats {
-    /// Douze teintes vives pour les extensions qui pesent le plus, le reste en gris.
+    /// Twelve vivid hues for the heaviest extensions, gray for the rest.
     static let palette: [SIMD3<Float>] = [
-        SIMD3(0.22, 0.42, 1.00), // bleu
-        SIMD3(1.00, 0.26, 0.26), // rouge
-        SIMD3(0.22, 0.84, 0.32), // vert
-        SIMD3(1.00, 0.84, 0.12), // jaune
+        SIMD3(0.22, 0.42, 1.00), // blue
+        SIMD3(1.00, 0.26, 0.26), // red
+        SIMD3(0.22, 0.84, 0.32), // green
+        SIMD3(1.00, 0.84, 0.12), // yellow
         SIMD3(0.12, 0.84, 0.94), // cyan
         SIMD3(0.94, 0.32, 0.94), // magenta
         SIMD3(1.00, 0.56, 0.12), // orange
         SIMD3(0.62, 0.46, 1.00), // violet
-        SIMD3(0.58, 1.00, 0.56), // vert clair
-        SIMD3(1.00, 0.62, 0.72), // rose
-        SIMD3(0.52, 0.80, 1.00), // ciel
-        SIMD3(0.86, 0.74, 0.46), // sable
+        SIMD3(0.58, 1.00, 0.56), // light green
+        SIMD3(1.00, 0.62, 0.72), // pink
+        SIMD3(0.52, 0.80, 1.00), // sky
+        SIMD3(0.86, 0.74, 0.46), // sand
     ]
     static let otherColor = SIMD3<Float>(0.62, 0.62, 0.62)
     static let directoryColor = SIMD3<Float>(0.50, 0.50, 0.52)
@@ -36,7 +36,7 @@ final class ExtensionStats {
 
     var totalBytes: Int64 { entries.reduce(0) { $0 + $1.bytes } }
 
-    /// Parcourt l'arbre et inscrit l'indice d'extension dans chaque fichier.
+    /// Walks the tree and stores the extension index in each file.
     init(root: FileNode) {
         var indexByExt: [String: Int] = [:]
         var stack = [root]
@@ -60,14 +60,14 @@ final class ExtensionStats {
             node.extID = Int32(index)
         }
 
-        // Les couleurs vont aux extensions les plus lourdes.
+        // Colors go to the heaviest extensions.
         let ranking = entries.indices.sorted { entries[$0].bytes > entries[$1].bytes }
         for (rank, index) in ranking.prefix(ExtensionStats.palette.count).enumerated() {
             entries[index].colorIndex = rank
         }
     }
 
-    /// Retire un sous-arbre supprime (les indices des autres fichiers ne bougent pas).
+    /// Removes a deleted subtree (the indices of other files do not change).
     func remove(subtree: FileNode) {
         var stack = [subtree]
         while let node = stack.popLast() {
@@ -80,7 +80,7 @@ final class ExtensionStats {
         }
     }
 
-    /// Couleur de base de chaque extension, indexee par extID, pour le rendu.
+    /// Base color of each extension, indexed by extID, for rendering.
     var colorsByID: [SIMD3<Float>] {
         entries.map { $0.colorIndex >= 0 ? ExtensionStats.palette[$0.colorIndex] : ExtensionStats.otherColor }
     }
@@ -110,7 +110,7 @@ final class ExtensionStats {
 
     private static var descriptions: [String: String] = [:]
 
-    /// Description du type (« JPEG image »), via UTType ; mise en cache.
+    /// Type description ("JPEG image"), from UTType; cached.
     static func description(of ext: String) -> String {
         if ext.isEmpty { return "No extension" }
         if let cached = descriptions[ext] { return cached }

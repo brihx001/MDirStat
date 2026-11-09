@@ -1,7 +1,7 @@
 import AppKit
 
-/// Ne pas telecharger les fichiers iCloud « sans donnees » en les parcourant :
-/// readdir sur un dossier non materialise echoue au lieu de le rapatrier.
+/// Do not download dataless iCloud files while scanning: reading a folder that
+/// is not materialized fails instead of fetching it.
 private func disableDatalessMaterialization() {
     _ = setiopolicy_np(IOPOL_TYPE_VFS_MATERIALIZE_DATALESS_FILES, IOPOL_SCOPE_PROCESS,
                        IOPOL_MATERIALIZE_DATALESS_FILES_OFF)
@@ -17,8 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller = MainWindowController()
         controller.showWindow(nil)
 
-        // Pour les verifications : MDIRSTAT_SNAPSHOT=/chemin.png ecrit l'image de la
-        // fenetre une fois le treemap affiche, puis quitte.
+        // For automated checks: MDIRSTAT_SNAPSHOT=/path.png writes an image of the
+        // window once the treemap is displayed, then quits.
         if let snapshot = ProcessInfo.processInfo.environment["MDIRSTAT_SNAPSHOT"] {
             controller.onScanDisplayed = { [weak self] in
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -28,7 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Un dossier passe en argument (ou ouvert depuis le Finder) est analyse tout de suite.
+        // A folder passed as an argument (or opened from the Finder) is scanned right away.
         let arguments = CommandLine.arguments.dropFirst().filter { !$0.hasPrefix("-") }
         if let url = pendingURL {
             controller.startScan(url: url)
@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let snapshot = ProcessInfo.processInfo.environment["MDIRSTAT_SNAPSHOT"] {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
                     self?.controller.snapshot(to: snapshot)
-                    exit(0)   // terminate est ignore tant qu'une feuille est ouverte
+                    exit(0)   // terminate is ignored while a sheet is open
                 }
             }
         }

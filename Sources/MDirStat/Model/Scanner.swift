@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 
-/// Compteurs lus par l'interface pendant l'analyse.
+/// Counters read by the interface during a scan.
 final class ScanProgress {
     struct Snapshot {
         var files = 0
@@ -29,20 +29,20 @@ final class ScanProgress {
     }
 }
 
-/// Analyse parallele d'un dossier : un groupe de fils se partage une pile de
-/// dossiers a lire (readdir + fstatat). Chaque dossier n'est lu que par un fil,
-/// qui est donc seul a remplir ses enfants : l'arbre se construit sans verrou.
+/// Parallel folder scan: a pool of threads shares a stack of folders to read
+/// (getattrlistbulk, or readdir + fstatat as a fallback). Each folder is read by
+/// a single thread, the only one filling its children: the tree is built without locks.
 final class Scanner {
     let rootPath: String
     let progress = ScanProgress()
 
     private let condition = NSCondition()
     private var stack: [(FileNode, String)] = []
-    /// Dossiers en attente plus dossiers en cours de lecture.
+    /// Folders waiting plus folders being read.
     private var pending = 0
     private var isCancelled = false
 
-    /// Volumes autorises : on ne traverse pas les points de montage.
+    /// Allowed volumes: mount points are never crossed.
     private var devices: Set<dev_t> = []
     private var excluded: Set<String> = []
 
@@ -72,21 +72,21 @@ final class Scanner {
         condition.unlock()
     }
 
-    /// Bloquant, et recursif pour l'agregation : a lancer sur un fil a grande pile.
-    /// Renvoie nil si la racine n'est pas un dossier lisible ou si l'analyse est annulee.
+    /// Blocking, and recursive for aggregation: run on a thread with a large stack.
+    /// Returns nil if the root is not a readable folder or the scan was cancelled.
     func run(rootName: String? = nil) -> FileNode? {
         var info = stat()
         guard lstat(rootPath, &info) == 0, info.st_mode & S_IFMT == S_IFDIR else { return nil }
 
         devices = [info.st_dev]
         if rootPath == "/" {
-            // Volume de demarrage : le volume systeme scelle plus le volume de donnees,
-            // atteint par les firmlinks (/Users, /Applications, /private...). On saute
-            // /System/Volumes, qui ferait compter les donnees deux fois.
+            // Startup disk: the sealed system volume plus the data volume, reached
+            // through firmlinks (/Users, /Applications, /private...). /System/Volumes
+            // is skipped, as it would count the data twice.
             var data = stat()
             if lstat("/System/Volumes/Data", &data) == 0 { devices.insert(data.st_dev) }
-            // .nofollow, .resolve et .vol sont des pseudo-dossiers qui exposent
-            // a nouveau tout le systeme de fichiers.
+            // .nofollow, .resolve and .vol are pseudo folders that expose the
+            // whole file system again.
             excluded = ["/System/Volumes", "/.nofollow", "/.resolve", "/.vol"]
         }
 
@@ -116,7 +116,7 @@ final class Scanner {
     }
 
     private func work() {
-        // Tampon de getattrlistbulk, un par fil.
+        // getattrlistbulk buffer, one per thread.
         let buffer = UnsafeMutableRawPointer.allocate(byteCount: Scanner.bulkSize, alignment: 8)
         defer { buffer.deallocate() }
         while true {
@@ -143,7 +143,7 @@ final class Scanner {
 
     private static let nameOffset = MemoryLayout<dirent>.offset(of: \dirent.d_name)!
 
-    /// Lit un dossier, remplit ses enfants et renvoie ses sous-dossiers a parcourir.
+    /// Reads a folder, fills its children and returns the subfolders to visit.
     private func read(_ node: FileNode, path: String, buffer: UnsafeMutableRawPointer) -> [(FileNode, String)] {
         let fd = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard fd >= 0 else {
@@ -168,10 +168,10 @@ final class Scanner {
     private static let directoryType = UInt32(VDIR.rawValue)
     private static let regularType = UInt32(VREG.rawValue)
 
-    /// Lecture par lots : un appel noyau rend nom et attributs de nombreuses
-    /// entrees, au lieu d'un fstatat par fichier. Renvoie nil si le systeme de
-    /// fichiers ne gere pas getattrlistbulk (on retombe alors sur readdir).
-    /// Format des enregistrements : getattrlist(2) et getattrlistbulk(2).
+    /// Bulk reading: one system call returns the names and attributes of many
+    /// entries, instead of one fstatat per file. Returns nil if the file system
+    /// does not support getattrlistbulk (readdir is used instead).
+    /// Record format: getattrlist(2) and getattrlistbulk(2).
     private func readBulk(_ node: FileNode, path: String, fd: Int32,
                           buffer: UnsafeMutableRawPointer) -> [(FileNode, String)]? {
         var request = attrlist()
@@ -226,7 +226,7 @@ final class Scanner {
                 }
                 var modified = 0
                 if returned.commonattr & attrgroup_t(ATTR_CMN_MODTIME) != 0 {
-                    modified = field.loadUnaligned(as: Int.self)   // tv_sec du timespec
+                    modified = field.loadUnaligned(as: Int.self)   // tv_sec of the timespec
                     field += MemoryLayout<timespec>.size
                 }
                 var inode: UInt64 = 0
@@ -251,7 +251,7 @@ final class Scanner {
                         allocated = field.loadUnaligned(as: Int64.self)
                         field += 8
                     }
-                    // Points de montage et declencheurs autofs : autre volume, on s'arrete.
+                    // Mount points and autofs triggers: another volume, stop here.
                     if mountStatus & UInt32(DIR_MNTSTATUS_MNTPOINT | DIR_MNTSTATUS_TRIGGER) != 0 { continue }
                     let childPath = prefix + name
                     if !excluded.isEmpty && excluded.contains(childPath) { continue }
@@ -292,7 +292,7 @@ final class Scanner {
         return subdirectories
     }
 
-    /// Lecture classique, entree par entree, pour les systemes de fichiers sans getattrlistbulk.
+    /// Entry-by-entry reading, for file systems without getattrlistbulk.
     private func readEntries(_ node: FileNode, path: String, fd: Int32) -> [(FileNode, String)] {
         guard let directory = fdopendir(fd) else {
             close(fd)
@@ -335,7 +335,7 @@ final class Scanner {
                 bytes += child.size
             } else {
                 var size = Int64(info.st_blocks) * 512
-                // Liens durs : l'espace n'est compte qu'une fois.
+                // Hard links: the space is counted only once.
                 if info.st_nlink > 1 && type == S_IFREG {
                     linkLock.lock()
                     let first = seenLinks.insert(LinkKey(device: info.st_dev, inode: info.st_ino)).inserted
@@ -355,7 +355,7 @@ final class Scanner {
         return subdirectories
     }
 
-    /// Cumule tailles, compteurs et dates de bas en haut, puis trie par taille.
+    /// Sums sizes, counts and dates bottom-up, then sorts by size.
     static func aggregate(_ node: FileNode) {
         var size = node.size
         var files = 0
@@ -382,7 +382,7 @@ final class Scanner {
         node.sortChildren()
     }
 
-    /// Lance l'analyse sur un fil a grande pile (l'agregation est recursive).
+    /// Runs the scan on a thread with a large stack (aggregation is recursive).
     static func runDetached(_ body: @escaping () -> Void) {
         let thread = Thread(block: body)
         thread.stackSize = 64 << 20

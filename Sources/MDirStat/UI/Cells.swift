@@ -1,7 +1,7 @@
 import AppKit
 import UniformTypeIdentifiers
 
-/// Cellule texte, avec image facultative, construite sans nib.
+/// Text cell with an optional image, built without a nib.
 final class TextCell: NSTableCellView {
     init(identifier: NSUserInterfaceItemIdentifier, alignment: NSTextAlignment, withImage: Bool) {
         super.init(frame: .zero)
@@ -44,7 +44,7 @@ final class TextCell: NSTableCellView {
     required init?(coder: NSCoder) { fatalError() }
 }
 
-/// Barre de proportion suivie du pourcentage.
+/// Proportion bar followed by the percentage.
 final class PercentCell: NSTableCellView {
     var fraction: Double = 0 { didSet { needsDisplay = true } }
     var barColor: NSColor = .controlAccentColor { didSet { needsDisplay = true } }
@@ -79,7 +79,7 @@ final class PercentCell: NSTableCellView {
     }
 }
 
-/// Icones par extension, mises en cache (NSWorkspace est lent par fichier).
+/// Icons per extension, cached (NSWorkspace is slow per file).
 enum Icons {
     private static var cache: [String: NSImage] = [:]
     private static var appIcons: [String: NSImage] = [:]
@@ -95,7 +95,7 @@ enum Icons {
         case .directory:
             if node.unreadable { return warning }
             guard node.name.hasSuffix(".app") else { return folder }
-            // Icone propre de chaque application, lue une fois par chemin.
+            // Each application's own icon, read once per path.
             let path = node.path
             if let cached = appIcons[path] { return cached }
             let image = NSWorkspace.shared.icon(forFile: path)
@@ -111,7 +111,7 @@ enum Icons {
         }
     }
 
-    /// Pastille de couleur d'une extension, avec le meme relief que le treemap.
+    /// Color swatch of an extension, with the same shading as the treemap.
     static func swatch(_ color: SIMD3<Float>) -> NSImage {
         NSImage(size: NSSize(width: 14, height: 14), flipped: false) { rect in
             let base = ExtensionStats.nsColor(color)

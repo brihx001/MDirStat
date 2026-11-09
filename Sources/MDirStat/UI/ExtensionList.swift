@@ -1,6 +1,6 @@
 import AppKit
 
-/// Liste des extensions : couleur dans le treemap, octets, part, nombre de fichiers.
+/// Extension list: treemap color, bytes, share and file count.
 final class ExtensionList: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     let scrollView = NSScrollView()
     let tableView = NSTableView()
@@ -32,7 +32,7 @@ final class ExtensionList: NSObject, NSTableViewDataSource, NSTableViewDelegate 
         }
     }
 
-    /// Indices dans stats.entries, dans l'ordre d'affichage.
+    /// Indices into stats.entries, in display order.
     private var rows: [Int] = []
     private var suppressSelection = false
 
@@ -45,7 +45,7 @@ final class ExtensionList: NSObject, NSTableViewDataSource, NSTableViewDelegate 
             tableColumn.minWidth = 40
             tableColumn.sortDescriptorPrototype = NSSortDescriptor(key: column.rawValue,
                                                                    ascending: column == .ext || column == .description)
-            // Seule la description suit la largeur du panneau.
+            // Only the description column follows the pane width.
             if column != .description { tableColumn.resizingMask = .userResizingMask }
             if [.bytes, .percent, .files].contains(column) { tableColumn.headerCell.alignment = .right }
             tableView.addTableColumn(tableColumn)
@@ -87,7 +87,7 @@ final class ExtensionList: NSObject, NSTableViewDataSource, NSTableViewDelegate 
         return row >= 0 && row < rows.count ? Int32(rows[row]) : nil
     }
 
-    /// Selectionne l'extension d'un fichier choisi ailleurs, sans renvoyer l'evenement.
+    /// Selects the extension of a file chosen elsewhere, without sending the event back.
     func reveal(extension id: Int32?) {
         suppressSelection = true
         if let id, let row = rows.firstIndex(of: Int(id)) {

@@ -1,6 +1,6 @@
 import AppKit
 
-/// Fenetre unique : arborescence et extensions en haut, treemap en bas, barre d'etat.
+/// Single window: tree and extensions on top, treemap below, status bar.
 final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolbarDelegate,
                                   NSUserInterfaceValidations, NSToolbarItemValidation, NSSplitViewDelegate {
     private let outline = DirectoryOutline()
@@ -17,7 +17,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var zoomRoot: FileNode? { didSet { treemap.root = zoomRoot } }
     private var stats: ExtensionStats?
     private var selected: FileNode?
-    /// Capacite et espace libre, si la racine analysee est un volume.
+    /// Capacity and free space, when the scanned root is a volume.
     private var volume: (total: Int64, free: Int64)?
     private var scanner: Scanner?
     private var scanTimer: Timer?
@@ -26,7 +26,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
     private var picker: VolumePicker?
     private var awaitingRender = false
 
-    /// Appele une fois, quand le premier treemap d'une analyse est affiche.
+    /// Called once, when the first treemap of a scan is displayed.
     var onScanDisplayed: (() -> Void)?
 
     private let defaults = UserDefaults.standard
@@ -64,8 +64,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
 
         topSplit.isVertical = true
         topSplit.dividerStyle = .thin
-        // NSSplitView classique (cadres, pas Auto Layout) : la liste des extensions
-        // garde sa largeur quand la fenetre change de taille, l'arborescence s'adapte.
+        // Classic NSSplitView (frames, not Auto Layout): the extension list keeps
+        // its width when the window is resized, the tree adapts.
         outline.scrollView.frame = NSRect(x: 0, y: 0, width: 840, height: 380)
         extensions.scrollView.frame = NSRect(x: 841, y: 0, width: 430, height: 380)
         topSplit.frame = NSRect(x: 0, y: 0, width: 1280, height: 380)
@@ -126,8 +126,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
             overlay.bottomAnchor.constraint(equalTo: mainSplit.bottomAnchor),
         ])
 
-        // Positions par defaut des separateurs, une fois la fenetre mise en page
-        // (les vues du NSSplitView ont un cadre nul tant qu'il n'a pas tourne).
+        // Default divider positions, once the window has been laid out
+        // (NSSplitView subviews have an empty frame until it has run).
         let firstLaunch = defaults.object(forKey: "NSSplitView Subview Frames MainSplit") == nil
         DispatchQueue.main.async { [self] in
             content.layoutSubtreeIfNeeded()
@@ -135,7 +135,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
                 topSplit.setPosition(topSplit.bounds.width * 0.66, ofDividerAt: 0)
             }
             if firstLaunch {
-                // Ramene les colonnes a la largeur visible, sans defilement horizontal.
+                // Fit the columns to the visible width, without horizontal scrolling.
                 topSplit.layoutSubtreeIfNeeded()
                 outline.outlineView.sizeToFit()
                 extensions.tableView.sizeToFit()
@@ -165,9 +165,9 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         extensions.onSelect = { [weak self] id in self?.treemap.highlightedExtension = id }
     }
 
-    // MARK: - Analyse
+    // MARK: - Scanning
 
-    /// Feuille de choix d'un volume ou d'un dossier.
+    /// Sheet to choose a volume or a folder.
     @objc func openDocument(_ sender: Any?) {
         guard let window, picker == nil, window.attachedSheet == nil else { return }
         let picker = VolumePicker()
@@ -215,8 +215,8 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
     }
 
-    /// Analyse un dossier sur un fil a part ; completion sur le fil principal.
-    /// Les statistiques ne sont calculees que pour une analyse complete (name == nil).
+    /// Scans a folder on a separate thread; completion runs on the main thread.
+    /// Extension statistics are only computed for a full scan (name == nil).
     private func runScan(path: String, name: String?, title: String,
                          completion: @escaping (FileNode?, ExtensionStats?) -> Void) {
         scanner?.cancel()
@@ -265,7 +265,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         startScan(url: URL(fileURLWithPath: root.name))
     }
 
-    /// Reanalyse le dossier choisi et le remplace dans l'arbre.
+    /// Rescans the chosen folder and replaces it in the tree.
     @objc func refreshSelected(_ sender: Any?) {
         guard scanner == nil, let node = targetNode(sender) else { return }
         guard let directory = node.kind == .directory ? node : node.parent else { return }
@@ -294,7 +294,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         return (Int64(values.volumeTotalCapacity ?? 0), Int64(values.volumeAvailableCapacity ?? 0))
     }
 
-    /// Ajoute ou retire <Free Space> et <Unknown> sous la racine d'un volume.
+    /// Adds or removes <Free Space> and <Unknown> under a volume root.
     private func applyPseudoNodes() {
         guard let root else { return }
         treemap.cancelRendering()
@@ -328,7 +328,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         updateStatus()
     }
 
-    // MARK: - Selection et etat
+    // MARK: - Selection and status
 
     private func select(_ node: FileNode, fromTreemap: Bool) {
         selected = node
@@ -373,7 +373,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         }
     }
 
-    // MARK: - Actions sur un element
+    // MARK: - Item actions
 
     private func targetNode(_ sender: Any?) -> FileNode? {
         ((sender as? NSMenuItem)?.representedObject as? FileNode) ?? selected
@@ -491,7 +491,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         topSplit.adjustSubviews()
     }
 
-    // MARK: - Separateurs
+    // MARK: - Dividers
 
     func splitView(_ splitView: NSSplitView, shouldAdjustSizeOfSubview view: NSView) -> Bool {
         splitView !== topSplit || view !== extensions.scrollView
@@ -545,7 +545,7 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         validateUserInterfaceItem(item)
     }
 
-    // MARK: - Barre d'outils
+    // MARK: - Toolbar
 
     private enum ToolbarID {
         static let open = NSToolbarItem.Identifier("open")
@@ -595,13 +595,13 @@ final class MainWindowController: NSWindowController, NSWindowDelegate, NSToolba
         return item
     }
 
-    // MARK: - Fenetre
+    // MARK: - Window
 
     func windowWillClose(_ notification: Notification) {
         scanner?.cancel()
     }
 
-    /// Image de la fenetre, pour les verifications automatiques (MDIRSTAT_SNAPSHOT).
+    /// Image of the window, for automated checks (MDIRSTAT_SNAPSHOT).
     func snapshot(to path: String) {
         let target = window?.attachedSheet ?? window
         guard let view = target?.contentView?.superview ?? target?.contentView,

@@ -1,15 +1,15 @@
 import Foundation
 
-/// Verrou de l'arbre : le rendu du treemap lit l'arbre sur un fil a part,
-/// le fil principal le modifie (corbeille, rafraichissement). Les deux le prennent.
+/// Tree lock: the treemap renderer reads the tree on a separate thread while the
+/// main thread modifies it (Trash, refresh). Both take it.
 let treeLock = NSLock()
 
-/// Un element de l'arbre analyse. Une classe, pour que NSOutlineView puisse
-/// s'en servir comme item et que l'arbre se partage sans copie.
+/// An item of the scanned tree. A class, so that NSOutlineView can use it as an
+/// item and the tree is shared without copies.
 final class FileNode {
     enum Kind: UInt8 {
         case file, directory
-        /// Pseudo-elements d'un volume : espace libre et espace non retrouve.
+        /// Pseudo items of a volume: free space and space the scan did not find.
         case freeSpace, unknown
     }
 
@@ -17,18 +17,18 @@ final class FileNode {
     let kind: Kind
     weak var parent: FileNode?
     var children: [FileNode] = []
-    /// Octets alloues sur le disque (st_blocks * 512) ; cumules pour un dossier.
+    /// Bytes allocated on disk (st_blocks * 512); cumulative for a folder.
     var size: Int64 = 0
-    /// Fichiers et sous-dossiers du sous-arbre (0 pour un fichier).
+    /// Files and subfolders in the subtree (0 for a file).
     var files = 0
     var subdirs = 0
-    /// time_t ; pour un dossier, le plus recent du sous-arbre.
+    /// time_t; for a folder, the most recent in the subtree.
     var modified = 0
-    /// Indice dans ExtensionStats.entries (-1 pour un dossier).
+    /// Index into ExtensionStats.entries (-1 for a folder).
     var extID: Int32 = -1
-    /// Dossier illisible (droits, protection TCC).
+    /// Unreadable folder (permissions, TCC privacy protection).
     var unreadable = false
-    /// Dossiers illisibles dans le sous-arbre.
+    /// Unreadable folders in the subtree.
     var errors = 0
 
     init(name: String, kind: Kind, parent: FileNode? = nil) {
@@ -41,7 +41,7 @@ final class FileNode {
     var isPseudo: Bool { kind == .freeSpace || kind == .unknown }
     var items: Int { files + subdirs }
 
-    /// Chemin complet ; le nom de la racine est deja un chemin absolu.
+    /// Full path; the root's name is already an absolute path.
     var path: String {
         guard let parent else { return name }
         let base = parent.path
@@ -59,7 +59,7 @@ final class FileNode {
         return false
     }
 
-    /// Ancetres, du parent jusqu'a la racine.
+    /// Ancestors, from the parent up to the root.
     var ancestors: [FileNode] {
         var result: [FileNode] = []
         var node = parent
@@ -70,15 +70,15 @@ final class FileNode {
         return result
     }
 
-    /// Les enfants restent tries par taille decroissante : le treemap en a besoin.
+    /// Children stay sorted by decreasing size: the treemap relies on it.
     func sortChildren() {
         children.sort { $0.size > $1.size }
     }
 }
 
 extension FileNode {
-    /// Retire un enfant et repercute tailles et compteurs jusqu'a la racine.
-    /// A appeler sous treeLock.
+    /// Removes a child and propagates sizes and counts up to the root.
+    /// Call while holding treeLock.
     func removeChild(_ child: FileNode) {
         guard let index = children.firstIndex(where: { $0 === child }) else { return }
         children.remove(at: index)
@@ -87,7 +87,7 @@ extension FileNode {
         propagate(size: -child.size, files: -fileDelta, subdirs: -dirDelta, errors: -child.errors)
     }
 
-    /// Remplace un enfant par une nouvelle analyse du meme dossier.
+    /// Replaces a child with a new scan of the same folder.
     func replaceChild(_ old: FileNode, with new: FileNode) {
         guard let index = children.firstIndex(where: { $0 === old }) else { return }
         children[index] = new
